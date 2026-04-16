@@ -1,0 +1,124 @@
+{
+  "bookings": [
+    {
+      "id": "2a03",
+      "service": "nails",
+      "date": "2026-02-14",
+      "completed": true
+    },
+    {
+      "id": "1407",
+      "service": "nails",
+      "date": "2026-02-27"
+    },
+    {
+      "id": "fa10",
+      "service": "makeup",
+      "date": "2026-02-26"
+    },
+    {
+      "id": "c96d",
+      "service": "makeup",
+      "date": "2026-02-26"
+    },
+    {
+      "id": "6bec",
+      "name": "lauryin",
+      "service": "Facial",
+      "date": "2026-02-27",
+      "completed": false
+    },
+    {
+      "id": "32dc",
+      "name": "lauryin",
+      "service": "Facial",
+      "date": "2026-02-27",
+      "completed": false
+    },
+    {
+      "id": "3d94",
+      "name": "lauryin",
+      "service": "Facial",
+      "date": "2026-02-27",
+      "completed": false
+    },
+    {
+      "id": "ed5a",
+      "name": "lauryin",
+      "service": "Facial",
+      "date": "2026-02-27",
+      "completed": false
+    },
+    {
+      "id": "22ad",
+      "name": "jane doe",
+      "email": "jane@gmail.com",
+      "phone": "+254714749302",
+      "service": "Nails",
+      "date": "2026-02-26",
+      "time": "15:01",
+      "completed": false
+    },
+    {
+      "id": "ca2d",
+      "name": "reby yei",
+      "email": "reby@gmail.com",
+      "phone": "+2547239833299999999",
+      "service": "Makeup",
+      "date": "2026-02-27",
+      "time": "16:07",
+      "completed": false
+    },
+    {
+      "id": "2492",
+      "name": "key yanii",
+      "email": "gghhh@gmail.com",
+      "phone": "+2544789209373990020992990909",
+      "service": "Nails",
+      "date": "2026-02-27",
+      "time": "17:09",
+      "completed": false
+    },
+    {
+      "id": "e848",
+      "name": "jojo blink",
+      "email": "blddddddd@gail.com",
+      "phone": "+254716637828",
+      "service": "Facial",
+      "date": "2026-02-19",
+      "time": "05:17",
+      "completed": false
+    },
+    {
+      "id": "09e6",
+      "name": "livey tyre",
+      "email": "tyre@yahoo.com",
+      "phone": "+254134537899",
+      "service": "Makeup",
+      "date": "2026-02-27",
+      "time": "18:24",
+      "completed": false
+    },
+    {
+      "id": "bc82",
+      "name": "joe doy",
+      "email": "joed@gmail.com",
+      "phone": "+254682029374",
+      "service": "Nails",
+      "date": "2026-04-29",
+      "time": "15:35",
+      "completed": false
+    },
+    {
+      "id": "b43c",
+      "name": "shar onne",
+      "email": "onne@gmail.com",
+      "phone": "+254739292093",
+      "service": "Makeup",
+      "date": "2026-03-12",
+      "time": "12:51",
+      "completed": false
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
