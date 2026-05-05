@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, authorizeRoles } = require('../middleware/authMiddleware');
 const Booking = require('../models/Booking'); 
+const Payment = require("../models/Payment");
 
 const DAILY_LIMIT = 5;
 
@@ -49,34 +50,66 @@ router.get('/check', async (req, res) => {
 });
 
 // 3. RESERVE (User Side)
-router.post('/reserve', verifyToken, async (req, res) => {
-    try {
-        console.log("Backend received data:", req.body);
-        
-        // Attach the authenticated user's ID to the booking payload
-        const bookingData = {
-  user: req.user.id,
-  name: req.body.name,
-  email: req.body.email,
-  phone: req.body.phone,
-  service: req.body.service,
-  price: req.body.price,
-  date: req.body.date,
-  time: req.body.time,
-  employeeName: req.body.stylist || req.body.employeeName || "Unassigned",
-  paymentMethod: req.body.paymentMethod || "cash",
-  mpesaCode: req.body.paymentMethod === "mpesa" ? req.body.mpesaCode || "" : "",
-  paymentStatus: req.body.paymentMethod === "mpesa" ? "pending_verification" : "confirmed",
-  completed: req.body.completed ?? false,
-};
+// 3. RESERVE (User Side)
+router.post("/reserve", verifyToken, async (req, res) => {
+  try {
+    console.log("Backend received data:", req.body);
 
-        const newBooking = new Booking(bookingData);
-        const savedBooking = await newBooking.save();
-        res.status(201).json(newBooking);
-    } catch (err) {
-        console.error("SAVE ERROR:", err.message);
-        res.status(400).json({ error: err.message });
+    let verifiedPayment = null;
+
+    if (req.body.paymentId) {
+      verifiedPayment = await Payment.findById(req.body.paymentId);
+
+      if (!verifiedPayment) {
+        return res.status(400).json({
+          error: "Payment record not found.",
+        });
+      }
+
+      if (verifiedPayment.status !== "paid") {
+        return res.status(400).json({
+          error: "Payment has not been confirmed yet.",
+        });
+      }
     }
+
+    const isPaid = verifiedPayment?.status === "paid";
+
+    const bookingData = {
+      user: req.user.id,
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      service: req.body.service,
+      price: Number(req.body.price) || Number(verifiedPayment?.amount) || 0,
+      date: req.body.date,
+      time: req.body.time,
+      employeeName: req.body.stylist || req.body.employeeName || "Unassigned",
+
+      paymentMethod: isPaid ? "mpesa" : req.body.paymentMethod || "cash",
+      mpesaCode: isPaid
+        ? verifiedPayment.mpesaReceiptNumber
+        : req.body.mpesaCode || "",
+
+      paymentId: verifiedPayment?._id,
+      paymentStatus: isPaid
+        ? "paid"
+        : req.body.paymentMethod === "mpesa"
+        ? "pending_verification"
+        : "confirmed",
+
+      paidAt: isPaid ? new Date() : undefined,
+      completed: req.body.completed ?? false,
+    };
+
+    const newBooking = new Booking(bookingData);
+    const savedBooking = await newBooking.save();
+
+    res.status(201).json(savedBooking);
+  } catch (err) {
+    console.error("SAVE ERROR:", err.message);
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // 4. GET OWN BOOKINGS (User Side) - PROTECTED: ANY AUTHENTICATED USER

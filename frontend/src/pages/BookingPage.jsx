@@ -11,6 +11,12 @@ const BookingPage = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showPaymentUI, setShowPaymentUI] = useState(false);
   const [mpesaCode, setMpesaCode] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+const [paymentMessage, setPaymentMessage] = useState("");
+
+const [paymentId, setPaymentId] = useState("");
+const [paymentStatus, setPaymentStatus] = useState("");
+const [paymentReceipt, setPaymentReceipt] = useState("");
 
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -102,6 +108,181 @@ const BookingPage = () => {
     }
   }, []);
 
+const formatPhoneForMpesa = (phone) => {
+  let cleaned = phone.replace(/\D/g, "");
+
+  // Handles cases like +2540714749302
+  if (cleaned.startsWith("2540")) {
+    cleaned = `254${cleaned.slice(4)}`;
+  }
+
+  // Handles 0714749302
+  if (cleaned.startsWith("0")) {
+    cleaned = `254${cleaned.slice(1)}`;
+  }
+
+  // Handles 714749302
+  if (cleaned.startsWith("7") || cleaned.startsWith("1")) {
+    cleaned = `254${cleaned}`;
+  }
+
+  return cleaned;
+};
+
+const sendMpesaPrompt = async () => {
+  try {
+    setPaymentLoading(true);
+    setPaymentMessage("");
+
+    const formattedPhone = formatPhoneForMpesa(formData.phone);
+
+    if (!/^254(7|1)\d{8}$/.test(formattedPhone)) {
+      toast.error("Please enter a valid Safaricom number.");
+      return false;
+    }
+
+    const res = await fetch("http://localhost:5001/api/mpesa/stk-push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        phone: formattedPhone,
+        amount: 1,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Failed to send M-Pesa prompt.");
+    }
+
+    setPaymentId(data.paymentId);
+setPaymentStatus("pending");
+
+setPaymentMessage(
+  "M-Pesa prompt sent. Please check your phone and enter your PIN."
+);
+
+toast.success("M-Pesa prompt sent to your phone.");
+return data.paymentId;
+  } catch (error) {
+    console.error("M-Pesa payment error:", error);
+    toast.error(error.message || "Failed to send M-Pesa prompt.");
+    setPaymentMessage("Failed to send M-Pesa prompt. Please try again.");
+    return false;
+  } finally {
+    setPaymentLoading(false);
+  }
+};
+
+const checkPaymentStatus = async (id = paymentId) => {
+  if (!id) return null;
+
+  try {
+    const res = await fetch(`http://localhost:5001/api/mpesa/status/${id}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Failed to check payment status.");
+    }
+
+    setPaymentStatus(data.status);
+
+    if (data.receipt) {
+      setPaymentReceipt(data.receipt);
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Payment status check error:", error);
+    return null;
+  }
+};
+
+const handleRetryPayment = async () => {
+  setPaymentId("");
+  setPaymentStatus("");
+  setPaymentReceipt("");
+  setPaymentMessage("Sending a new M-Pesa prompt...");
+
+  const newPaymentId = await sendMpesaPrompt();
+
+  if (newPaymentId) {
+    setShowPaymentUI(true);
+  }
+};
+
+const submitPaidBooking = async (receiptNumber) => {
+  const userToken = localStorage.getItem("userToken");
+
+  const finalBookingData = {
+    ...formData,
+    service: selectedTitle || formData.service,
+    price: selectedPrice,
+    mpesaCode: receiptNumber,
+    paymentStatus: "paid",
+    paymentId: paymentId,
+  };
+
+  try {
+    const res = await fetch("http://localhost:5001/api/bookings/reserve", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${userToken}`,
+      },
+      body: JSON.stringify(finalBookingData),
+    });
+
+    if (res.ok) {
+      toast.success("Payment confirmed. Booking completed successfully!");
+      setSubmitted(true);
+      localStorage.removeItem("selectedLookID");
+    } else {
+      const errorData = await res.json();
+      toast.error(errorData.message || "Booking failed after payment.");
+    }
+  } catch (err) {
+    toast.error("Server error while confirming booking.");
+  }
+};
+
+useEffect(() => {
+  if (!paymentId || paymentStatus !== "pending") return;
+
+  const interval = setInterval(async () => {
+    const payment = await checkPaymentStatus(paymentId);
+
+    if (payment?.status === "paid") {
+  clearInterval(interval);
+
+  setPaymentMessage(
+    `Payment confirmed successfully. Receipt: ${payment.receipt}`
+  );
+
+  toast.success("Payment confirmed automatically.");
+
+  await submitPaidBooking(payment.receipt);
+}
+
+    if (payment?.status === "failed") {
+      clearInterval(interval);
+      setPaymentMessage("Payment failed. Please try again.");
+      toast.error("Payment failed.");
+    }
+
+    if (payment?.status === "cancelled") {
+      clearInterval(interval);
+      setPaymentMessage("Payment was cancelled.");
+      toast.error("Payment was cancelled.");
+    }
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [paymentId, paymentStatus]);
+
   // --- STEP 1: VALIDATION BEFORE PAYMENT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,8 +308,12 @@ const BookingPage = () => {
       return;
     }
 
-    // If everything is valid, show the M-Pesa Pochi UI
-    setShowPaymentUI(true);
+        // If everything is valid, send STK Push first
+    const newPaymentId = await sendMpesaPrompt();
+
+if (newPaymentId) {
+  setShowPaymentUI(true);
+}
   };
 
   // --- STEP 2: FINAL SUBMISSION WITH MPESA CODE ---
@@ -369,11 +554,14 @@ const BookingPage = () => {
           <div className="mt-10 border-t border-gray-100 pt-8">
             {!showPaymentUI ? (
               <button
-                type="submit"
-                className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-pink-500 transition-all shadow-lg"
-              >
-                Confirm & Pay KES {selectedPrice || "0"}
-              </button>
+  type="submit"
+  disabled={paymentLoading}
+  className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-pink-500 transition-all shadow-lg disabled:opacity-60"
+>
+  {paymentLoading
+    ? "Sending M-Pesa Prompt..."
+    : `Confirm & Pay KES ${selectedPrice || "0"}`}
+</button>
             ) : (
               <div className="space-y-6 animate-in fade-in zoom-in duration-300">
                 <div className="bg-pink-50 p-6 rounded-[2rem] border border-pink-100">
@@ -392,23 +580,43 @@ const BookingPage = () => {
                     </p>
                   </div>
 
-                  <input
-                    type="text"
-                    placeholder="Enter Transaction Code (e.g. QXJ8...)"
-                    required
-                    className="w-full p-4 bg-white rounded-2xl border-none outline-none focus:ring-2 focus:ring-pink-300 text-sm font-bold uppercase"
-                    value={mpesaCode}
-                    onChange={(e) => setMpesaCode(e.target.value)}
-                  />
+                  <div className="bg-white rounded-2xl p-4 text-center">
+  <p className="text-xs font-bold text-gray-600">
+    {paymentMessage || "Waiting for M-Pesa confirmation..."}
+  </p>
+
+  {paymentStatus && (
+    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-pink-500">
+      Status: {paymentStatus}
+    </p>
+  )}
+
+  {paymentReceipt && (
+    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-green-600">
+      Receipt: {paymentReceipt}
+    </p>
+  )}
+</div>
                 </div>
 
                 <button
-                  type="button"
-                  onClick={handleFinalBooking}
-                  className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-green-500 transition-all shadow-lg"
-                >
-                  Complete Booking ✨
-                </button>
+  type="button"
+  onClick={
+    paymentStatus === "cancelled" || paymentStatus === "failed"
+      ? handleRetryPayment
+      : () => checkPaymentStatus(paymentId)
+  }
+  disabled={paymentLoading || paymentStatus === "paid"}
+  className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-pink-500 transition-all shadow-lg disabled:opacity-60"
+>
+  {paymentLoading
+    ? "Sending M-Pesa Prompt..."
+    : paymentStatus === "paid"
+    ? "Booking Confirmed ✨"
+    : paymentStatus === "cancelled" || paymentStatus === "failed"
+    ? "Retry M-Pesa Payment"
+    : "Check Payment Status"}
+</button>
               </div>
             )}
           </div>

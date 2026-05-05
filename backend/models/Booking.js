@@ -7,6 +7,7 @@ const bookingSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
     name: String,
     email: String,
     phone: String,
@@ -24,7 +25,7 @@ const bookingSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       enum: ["cash", "mpesa"],
-      default: "cash",
+      default: "mpesa",
     },
 
     mpesaCode: {
@@ -32,10 +33,26 @@ const bookingSchema = new mongoose.Schema(
       default: "",
     },
 
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "pending_verification", "confirmed"],
+      enum: [
+        "unpaid",
+        "pending_verification",
+        "confirmed",
+        "paid",
+        "failed",
+        "cancelled",
+      ],
       default: "pending_verification",
+    },
+
+    paidAt: {
+      type: Date,
     },
 
     completed: {

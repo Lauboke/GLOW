@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 
+
 dotenv.config();
 
 const app = express();
@@ -47,6 +48,9 @@ app.use('/api/profile', profileRoutes);
 
 const staffRoutes = require("./routes/staffRoutes");
 app.use("/api/staff", staffRoutes);
+
+const mpesaRoutes = require("./routes/mpesaRoutes");
+app.use("/api/mpesa", mpesaRoutes);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
