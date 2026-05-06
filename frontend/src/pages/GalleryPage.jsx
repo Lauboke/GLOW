@@ -3,9 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const Gallery = () => {
+  const API_BASE = "http://localhost:5001";
   const [searchQuery, setSearchQuery] = useState("");
+  const [dbPhotos, setDbPhotos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
-
   const navigate = useNavigate();
 
   const handleBookLook = (photo) => {
@@ -52,7 +54,7 @@ const Gallery = () => {
   };
   // --------------------------------------
 
-  const allPhotos = [
+  const staticPhotos = [
     // --- HAIR COLLECTION ---
     {
       id: "STYLE-HAIR-01",
@@ -164,6 +166,35 @@ const Gallery = () => {
       url: "https://res.cloudinary.com/drp3nfd83/image/upload/v1773235647/photo_2026-03-11_16-26-22_h264fd.jpg",
     },
   ];
+  const allPhotos = [...dbPhotos, ...staticPhotos];
+
+useEffect(() => {
+  const fetchServices = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/services`);
+      const data = await response.json();
+
+      if (response.ok && data.data) {
+        const formattedServices = data.data.map((service) => ({
+          id: service._id,
+          category: service.category,
+          title: service.title,
+          price: service.price,
+          url: service.imageUrl,
+          description: service.description,
+        }));
+
+        setDbPhotos(formattedServices);
+      }
+    } catch (error) {
+      console.error("Failed to load uploaded services:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchServices();
+}, []);
 
   // 2. SYNC SEARCH WITH URL PARAMETERS
   useEffect(() => {

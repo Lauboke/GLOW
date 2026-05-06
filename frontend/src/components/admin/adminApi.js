@@ -8,7 +8,7 @@ import {
 import { getAdminToken } from "./adminAuth";
 
 export const adminLoginRequest = async (email, password) => {
-  const response = await fetch(`${AUTH_API}/login`, {
+  const response = await fetch(`${AUTH_API}/staff-login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),

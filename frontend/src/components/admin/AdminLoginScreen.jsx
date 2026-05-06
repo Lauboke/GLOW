@@ -19,7 +19,7 @@ const AdminLoginScreen = ({
 
         <input
           type="email"
-          placeholder="Admin Email"
+          placeholder="Staff Email"
           className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-pink-300 mb-3 text-center font-bold text-sm"
           value={emailInput}
           onChange={(e) => setEmailInput(e.target.value)}

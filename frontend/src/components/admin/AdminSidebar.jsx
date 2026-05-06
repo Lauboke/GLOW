@@ -7,6 +7,8 @@ import {
   Wallet,
   Mail,
   Star,
+  ImagePlus,
+  Gift,
   LogOut,
   UserCircle2,
   Settings,
@@ -21,6 +23,8 @@ const NAV_ITEMS = [
   { key: "revenue", label: "Revenue", icon: Wallet },
   { key: "inquiries", label: "Inquiries", icon: Mail },
   { key: "reviews", label: "Reviews", icon: Star },
+  { key: "services", label: "Services", icon: ImagePlus },
+  { key: "giveaways", label: "Promos", icon: Gift },
   { key: "settings", label: "Settings", icon: Settings },
   { key: "profile", label: "My Profile", icon: UserCircle2 },
 ];

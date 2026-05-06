@@ -21,6 +21,8 @@ const GlowAI = () => {
   const UPLOAD_PRESET = "glow_ai_uploads";
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
+  const [previewImage, setPreviewImage] = useState(null);
+
   const handleTextSearch = async () => {
     if (!inputVal.trim() && !pendingImage) return;
 
@@ -129,6 +131,63 @@ const GlowAI = () => {
     }
   };
 
+const buildRecommendedLook = (imgUrl, idx) => ({
+  id: `AI-LOOK-${idx + 1}`,
+  title: `Glow AI Recommendation ${idx + 1}`,
+  category: "AI Recommendation",
+  price: "500",
+  url: imgUrl,
+});
+
+const handleBookRecommendation = (imgUrl, idx) => {
+  const look = buildRecommendedLook(imgUrl, idx);
+
+  localStorage.setItem("selectedLookID", look.id);
+  localStorage.setItem("selectedLookTitle", look.title);
+  localStorage.setItem("selectedLookPrice", look.price);
+  localStorage.setItem("selectedCategory", look.category);
+  localStorage.setItem("selectedLookImage", look.url);
+
+  window.location.href = "/booking";
+};
+
+const handleSaveRecommendation = async (imgUrl, idx) => {
+  const token = localStorage.getItem("userToken");
+
+  if (!token) {
+    toast.error("Please sign in to save this look.");
+    window.location.href = "/login";
+    return;
+  }
+
+  const look = buildRecommendedLook(imgUrl, idx);
+
+  try {
+    const res = await fetch(`${API_BASE}/profile/save-look`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: look.title,
+        imageUrl: look.url,
+        serviceCategory: look.category,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      toast.success(data.message || "Look saved to your profile.");
+    } else {
+      toast.error(data.message || "Could not save this look.");
+    }
+  } catch (error) {
+    toast.error("Server error. Could not save this look.");
+  }
+};
+
   return (
     <>
       {!isOpen && (
@@ -161,7 +220,7 @@ const GlowAI = () => {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-28 right-8 z-[100] w-[480px] h-[550px] bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/20 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-500">
+        <div className="fixed bottom-24 left-4 right-4 z-[100] h-[min(78vh,680px)] bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/20 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-500 sm:left-auto sm:right-8 sm:w-[620px]">
           <div className="bg-black p-6 text-white flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img
@@ -292,17 +351,53 @@ const GlowAI = () => {
                 )} */}
 
                 {msg.images && msg.images.length > 0 && (
-                  <div className="flex gap-2 mt-2 w-[85%] overflow-x-auto pb-2 scrollbar-hide">
-                    {msg.images.map((imgUrl, idx) => (
-                      <img
-                        key={idx}
-                        src={imgUrl}
-                        className="w-24 h-24 object-cover rounded-xl shadow-md border border-pink-100 flex-shrink-0"
-                        alt="AI Recommendation"
-                      />
-                    ))}
-                  </div>
-                )}
+  <div className="mt-3 w-[95%]">
+    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-pink-500">
+      Recommended Looks
+    </p>
+
+    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      {msg.images.map((imgUrl, idx) => (
+        <div
+          key={idx}
+          className="w-[150px] flex-shrink-0 rounded-2xl border border-pink-100 bg-white p-2 shadow-sm"
+        >
+          <img
+            src={imgUrl}
+            className="h-24 w-full object-cover rounded-xl border border-gray-100"
+            alt={`AI Recommendation ${idx + 1}`}
+          />
+
+          <div className="mt-2 space-y-2">
+            <button
+              type="button"
+              onClick={() => setPreviewImage(imgUrl)}
+              className="w-full rounded-full bg-gray-100 px-3 py-2 text-[8px] font-black uppercase tracking-widest text-gray-700 transition hover:bg-gray-200"
+            >
+              View
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleBookRecommendation(imgUrl, idx)}
+              className="w-full rounded-full bg-black px-3 py-2 text-[8px] font-black uppercase tracking-widest text-white transition hover:bg-pink-500"
+            >
+              Book This
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSaveRecommendation(imgUrl, idx)}
+              className="w-full rounded-full border border-pink-200 bg-pink-50 px-3 py-2 text-[8px] font-black uppercase tracking-widest text-pink-600 transition hover:bg-pink-500 hover:text-white"
+            >
+              Save This
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
               </div>
             ))}
 
@@ -387,6 +482,26 @@ const GlowAI = () => {
           </div>
         </div>
       )}
+
+{previewImage && (
+  <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/80 px-4">
+    <div className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+      <button
+        type="button"
+        onClick={() => setPreviewImage(null)}
+        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-pink-500"
+      >
+        ✕
+      </button>
+
+      <img
+        src={previewImage}
+        alt="AI recommendation preview"
+        className="max-h-[80vh] w-full object-contain bg-black"
+      />
+    </div>
+  </div>
+)}
 
       <GlowCameraModal
         isOpen={isCameraOpen}

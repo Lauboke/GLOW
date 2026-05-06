@@ -1,11 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Profile = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview"); // overview, looks, inbox
+  const [activeGiveaways, setActiveGiveaways] = useState([]);
   const navigate = useNavigate();
+
+
+useEffect(() => {
+  const fetchActiveGiveaways = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/giveaways");
+      const data = await res.json();
+
+      if (res.ok) {
+        setActiveGiveaways(data.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to load giveaways:", error);
+    }
+  };
+
+  fetchActiveGiveaways();
+}, []);
 
   // Calculate only truly "new" messages (replied by admin but not read by user)
   const unreadCount = data?.messages
@@ -60,6 +80,48 @@ const Profile = () => {
 
     fetchProfileData();
   }, []);
+
+const handleClaimGiveaway = async (promo) => {
+  const token = localStorage.getItem("userToken");
+
+  if (!token) {
+    toast.error("Please sign in to claim this promo.");
+    window.location.href = "/login";
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:5001/api/profile/enter-giveaway", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        giveawayId: promo._id,
+      }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      toast.error(result.message || "Could not claim this promo.");
+      return;
+    }
+
+    toast.success(result.message || "Promo claimed successfully.");
+
+    setData((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        giveaways: [...(prev.profile.giveaways || []), result.entry],
+      },
+    }));
+  } catch (error) {
+    toast.error("Server error. Could not claim promo.");
+  }
+};
 
   if (loading) {
     return (
@@ -307,34 +369,116 @@ const Profile = () => {
           {/* RIGHT SIDEBAR REMAINS EXACTLY AS IT WAS */}
           <div className="space-y-6">
             <div className="bg-gray-900 p-8 rounded-[2rem] shadow-lg text-white">
-              <h4 className="text-xl font-black uppercase italic mb-2">
-                Giveaways & Promos
-              </h4>
-              <p className="text-xs text-gray-400 mb-6">
-                Active entries for this month.
-              </p>
-              {data.profile.giveaways && data.profile.giveaways.length > 0 ? (
-                <ul className="space-y-3">
-                  {data.profile.giveaways.map((g) => (
-                    <li
-                      key={g._id}
-                      className="flex items-center gap-3 bg-white/10 p-3 rounded-xl border border-white/5"
-                    >
-                      <span className="text-pink-400">🎟️</span>
-                      <span className="text-sm font-bold">
-                        {g.giveawayName}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    No active entries.
+  <h4 className="text-xl font-black uppercase italic mb-2">
+    Giveaways & Promos
+  </h4>
+
+  <p className="text-xs text-gray-400 mb-6">
+    Active offers, promos, and giveaway entries.
+  </p>
+
+  {activeGiveaways.length > 0 ? (
+    <div className="space-y-4">
+      {activeGiveaways.map((promo) => {
+        const alreadyClaimed = data.profile.giveaways?.some(
+          (entry) =>
+            String(entry.giveawayId) === String(promo._id) ||
+            entry.giveawayName === promo.title
+        );
+
+        return (
+          <div
+            key={promo._id}
+            className="bg-white/10 p-4 rounded-2xl border border-white/10"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="w-full">
+                <p className="text-[10px] font-black uppercase tracking-widest text-pink-400">
+                  {promo.type} · {promo.applicableCategory}
+                </p>
+
+                <h5 className="mt-2 text-sm font-black uppercase tracking-wide text-white">
+                  {promo.title}
+                </h5>
+
+                <p className="mt-2 text-xs leading-5 text-gray-400">
+                  {promo.description}
+                </p>
+
+                {promo.prize && (
+                  <p className="mt-3 text-xs font-bold text-pink-300">
+                    {promo.prize}
                   </p>
-                </div>
-              )}
+                )}
+
+                {promo.promoCode && (
+                  <div className="mt-3 inline-flex rounded-full border border-pink-400/30 bg-pink-500/10 px-4 py-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-pink-300">
+                      Code: {promo.promoCode}
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleClaimGiveaway(promo)}
+                  disabled={alreadyClaimed}
+                  className={`mt-4 w-full rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition ${
+                    alreadyClaimed
+                      ? "bg-white/10 text-gray-500 cursor-not-allowed"
+                      : "bg-pink-500 text-white hover:bg-pink-600"
+                  }`}
+                >
+                  {alreadyClaimed
+                    ? promo.type === "promo"
+                      ? "Promo Claimed"
+                      : "Already Entered"
+                    : promo.type === "promo"
+                      ? "Claim Promo"
+                      : "Enter Giveaway"}
+                </button>
+              </div>
             </div>
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+        No active promos right now.
+      </p>
+    </div>
+  )}
+
+  {data.profile.giveaways && data.profile.giveaways.length > 0 && (
+    <div className="mt-6 border-t border-white/10 pt-5">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-gray-500">
+        Your Entries
+      </p>
+
+      <ul className="space-y-3">
+        {data.profile.giveaways.map((g, index) => (
+          <li
+            key={g._id || g.giveawayId || `${g.giveawayName}-${index}`}
+            className="flex items-center justify-between gap-3 bg-white/5 p-3 rounded-xl border border-white/5"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-pink-400">🎟️</span>
+              <span className="text-sm font-bold">{g.giveawayName}</span>
+            </div>
+
+            {g.promoCode && (
+              <span className="rounded-full bg-pink-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-pink-300">
+                {g.promoCode}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>
 
             <div className="bg-pink-50 p-8 rounded-[2rem] border border-pink-100">
               <h4 className="font-black text-gray-900 uppercase italic mb-2">

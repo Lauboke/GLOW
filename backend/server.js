@@ -52,6 +52,15 @@ app.use("/api/staff", staffRoutes);
 const mpesaRoutes = require("./routes/mpesaRoutes");
 app.use("/api/mpesa", mpesaRoutes);
 
+const settingsRoutes = require("./routes/settingsRoutes");
+app.use("/api/settings", settingsRoutes);
+
+const serviceRoutes = require("./routes/serviceRoutes");
+app.use("/api/services", serviceRoutes);
+
+const giveawayRoutes = require("./routes/giveawayRoutes");
+app.use("/api/giveaways", giveawayRoutes);
+
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`✨ Boke Glow Backend shining on port ${PORT}`);

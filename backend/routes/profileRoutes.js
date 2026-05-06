@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-// Assuming you have models named Booking and Contact.
-// If your Booking model is named differently, update this!
+const Giveaway = require("../models/Giveaway");
 const Booking = require("../models/Booking");
 const Contact = require("../models/Contact");
 const { verifyToken } = require("../middleware/authMiddleware");
+
 
 // GET: /api/profile/dashboard
 // This fetches EVERYTHING a user needs for their dashboard in one single request.
@@ -106,6 +106,80 @@ router.post("/save-look", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Save Look Error:", error);
     res.status(500).json({ message: "Failed to save look" });
+  }
+});
+
+router.post("/enter-giveaway", verifyToken, async (req, res) => {
+  try {
+    const { giveawayId } = req.body;
+
+    if (!giveawayId) {
+      return res.status(400).json({ message: "Missing giveaway or promo ID." });
+    }
+
+    const giveaway = await Giveaway.findById(giveawayId);
+
+    if (!giveaway) {
+      return res.status(404).json({ message: "Giveaway or promo not found." });
+    }
+
+    const now = new Date();
+
+    if (
+      !giveaway.isActive ||
+      new Date(giveaway.startDate) > now ||
+      new Date(giveaway.endDate) < now
+    ) {
+      return res.status(400).json({
+        message: "This giveaway or promo is no longer active.",
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const alreadyEntered = user.giveaways.some(
+      (entry) =>
+        String(entry.giveawayId) === String(giveaway._id) ||
+        entry.giveawayName === giveaway.title,
+    );
+
+    if (alreadyEntered) {
+      return res.status(400).json({
+        message: "You have already claimed or entered this promo.",
+      });
+    }
+
+    user.giveaways.push({
+      giveawayId: giveaway._id,
+      giveawayName: giveaway.title,
+      type: giveaway.type,
+      promoCode: giveaway.promoCode || "",
+    });
+
+    giveaway.entriesCount += 1;
+
+    await user.save();
+    await giveaway.save();
+
+    res.status(201).json({
+      message:
+        giveaway.type === "promo"
+          ? "Promo claimed successfully!"
+          : "Giveaway entry submitted successfully!",
+      entry: {
+        giveawayId: giveaway._id,
+        giveawayName: giveaway.title,
+        type: giveaway.type,
+        promoCode: giveaway.promoCode || "",
+      },
+    });
+  } catch (error) {
+    console.error("Enter Giveaway Error:", error);
+    res.status(500).json({ message: "Failed to enter giveaway or promo." });
   }
 });
 

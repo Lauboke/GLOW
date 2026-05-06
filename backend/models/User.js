@@ -27,10 +27,10 @@ const userSchema = new mongoose.Schema(
       select: false, // SECURITY: Never return password by default in queries
     },
     role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
+  type: String,
+  enum: ["user", "staff", "admin"],
+  default: "user",
+},
     // --- NEW: DASHBOARD FEATURES ---
     // 1. Saved Looks (From Services/Recommendations)
     savedLooks: [{
@@ -40,10 +40,30 @@ const userSchema = new mongoose.Schema(
       savedAt: { type: Date, default: Date.now }
     }],
     // 2. Giveaways & Promos (Tracks what they entered)
-    giveaways: [{
-      giveawayName: { type: String },
-      enteredAt: { type: Date, default: Date.now }
-    }]
+    giveaways: [
+  {
+    giveawayId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Giveaway",
+    },
+    giveawayName: {
+      type: String,
+    },
+    type: {
+      type: String,
+      enum: ["giveaway", "promo"],
+      default: "giveaway",
+    },
+    promoCode: {
+      type: String,
+      default: "",
+    },
+    enteredAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
   },
   { timestamps: true } // This automatically handles createdAt and updatedAt!
 );

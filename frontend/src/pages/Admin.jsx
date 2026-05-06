@@ -42,6 +42,10 @@ import OwnerProfileTab from "../components/admin/OwnerProfileTab";
 
 import SettingsTab from "../components/admin/SettingsTab";
 
+import ServicesManagerTab from "../components/admin/ServicesManagerTab";
+
+import GiveawaysManagerTab from "../components/admin/GiveawaysManagerTab";
+
 const Admin = () => {
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -286,24 +290,29 @@ const handleDeleteReview = (reviewId) => {
   }, []);
 
   const handleAdminLogin = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const { response, data } = await adminLoginRequest(
-        emailInput,
-        passwordInput,
-      );
+  try {
+    const { response, data } = await adminLoginRequest(
+      emailInput,
+      passwordInput,
+    );
 
-      if (response.ok && data.user.role === "admin") {
-        localStorage.setItem("adminToken", data.token);
-        setIsLoggedIn(true);
-      } else {
-        toast.error(data.message || "Access Denied: Admin rights required.");
-      }
-    } catch (error) {
-      toast.error("System Error: Backend is not responding.");
+    if (response.ok && ["admin", "staff"].includes(data.user.role)) {
+      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("userToken", data.token);
+      localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userEmail", data.user.email || emailInput);
+
+      setIsLoggedIn(true);
+    } else {
+      toast.error(data.message || "Access Denied: Staff access required.");
     }
-  };
+  } catch (error) {
+    toast.error("System Error: Backend is not responding.");
+  }
+};
 
   const handleUpdatePaymentStatus = async (id, newStatus) => {
     try {
@@ -673,6 +682,10 @@ if (confirmState.type === "review" && confirmState.id) {
         {activeTab === "profile" && <OwnerProfileTab />}
 
         {activeTab === "settings" && <SettingsTab />}
+
+        {activeTab === "services" && <ServicesManagerTab />}
+
+        {activeTab === "giveaways" && <GiveawaysManagerTab />}
 
         <ConfirmModal
           isOpen={confirmState.open}

@@ -1,7 +1,48 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const Home = () => {
+
+const API_BASE = "http://localhost:5001";
+
+const [siteSettings, setSiteSettings] = useState({
+  businessName: "GLOW",
+  location: "Nakuru, Kenya",
+  addressLine: "Egerton Njoro, Gate",
+  instagramUrl: "https://instagram.com/twinkle_glowbeauty",
+  whatsappNumber: "254714749302",
+  openingTime: "08:00",
+  closingTime: "17:00",
+  saturdayOpeningTime: "09:00",
+  saturdayClosingTime: "15:00",
+  footerTagline:
+    "Redefining beauty standards through luxury artistry and a passion for the glow.",
+});
+
+useEffect(() => {
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/settings`);
+      const data = await response.json();
+
+      if (response.ok && data.data) {
+        setSiteSettings((prev) => ({
+          ...prev,
+          ...data.data,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to load site settings:", error);
+    }
+  };
+
+  fetchSettings();
+}, []);
+
+const whatsappLink = siteSettings.whatsappNumber
+  ? `https://wa.me/${siteSettings.whatsappNumber.replace(/\D/g, "")}`
+  : "https://wa.me/254714749302";
+
   return (
     <div className="bg-white">
       {/* --- SECTION 1: THE STICKY VIDEO HERO --- */}
@@ -22,7 +63,6 @@ const Home = () => {
 
         {/* Buttons Centered on Video */}
         <div className="relative z-10 flex h-full flex-col items-center justify-center gap-4 px-5 text-center md:gap-6">
-          
           <div className="flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:w-auto md:gap-6">
             <Link
               to="/booking"
@@ -193,95 +233,170 @@ const Home = () => {
 
         {/* --- FOOTER --- */}
 
-        <footer className="bg-black/90 backdrop-blur-xl text-white py-20 border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
-            {/* Column 1: Brand */}
-            <div className="col-span-1 md:col-span-1">
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4">
-                Glow
-              </h2>
-              <p className="text-gray-400 text-xs leading-relaxed uppercase tracking-widest">
-                Redefining beauty standards through luxury artistry and a
-                passion for the glow.
-              </p>
-            </div>
+        <footer className="relative overflow-hidden bg-[#030303] text-white border-t border-white/10">
+          {/* Soft premium background */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgba(236,72,153,0.10),transparent_30%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050505] to-black" />
 
-            {/* Column 2: Quick Links */}
-            <div className="flex flex-col space-y-4">
-              <span className="text-pink-500 font-black uppercase text-[10px] tracking-widest mb-2">
-                Navigation
-              </span>
-              <Link
-                to="/booking"
-                className="text-xs uppercase font-bold hover:text-pink-400 transition-colors"
-              >
-                Book Now
-              </Link>
-              <Link
-                to="/gallery"
-                className="text-xs uppercase font-bold hover:text-pink-400 transition-colors"
-              >
-                Our Gallery
-              </Link>
-              <Link
-                to="/admin"
-                className="text-gray-600 text-xs uppercase font-bold hover:text-white transition-colors"
-              >
-                Staff Login
-              </Link>
-            </div>
+          <div className="relative max-w-7xl mx-auto px-6 md:px-10 lg:px-16 py-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-14">
+              {/* Brand */}
+              <div className="space-y-5">
+                <h2 className="text-4xl md:text-5xl font-black italic tracking-tight">
+                  {siteSettings.businessName || "GLOW"}
+                </h2>
 
-            {/* Column 3: Hours */}
-            <div className="flex flex-col space-y-2">
-              <span className="text-pink-500 font-black uppercase text-[10px] tracking-widest mb-2">
-                Hours
-              </span>
-              <p className="text-xs text-gray-400 uppercase font-bold">
-                Mon - Fri: 08:00 - 17:00
-              </p>
-              <p className="text-xs text-gray-400 uppercase font-bold">
-                Sat: 09:00 - 15:00
-              </p>
-              <p className="text-xs text-gray-600 uppercase font-bold italic">
-                Sun: Closed
-              </p>
-            </div>
+                <p className="max-w-xs text-sm leading-7 tracking-[0.14em] uppercase text-zinc-400">
+                  {siteSettings.footerTagline}
+                </p>
 
-            {/* Column 4: Contact */}
-            <div className="flex flex-col space-y-4">
-              <span className="text-pink-500 font-black uppercase text-[10px] tracking-widest mb-2">
-                Location
-              </span>
-              <p className="text-xs text-gray-400 uppercase font-bold leading-relaxed">
-                Nakuru, Kenya
-                <br />
-                Luxury Suites, 2nd Floor
-              </p>
-              <div className="flex space-x-4 pt-2">
                 <a
-                  href="#"
-                  className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-all"
+                  href="/booking"
+                  className="inline-flex rounded-full border border-pink-500/40 bg-pink-500/10 px-6 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-pink-300 transition-all duration-300 hover:bg-pink-500 hover:text-white hover:shadow-[0_0_24px_rgba(236,72,153,0.25)]"
                 >
-                  IG
-                </a>
-                <a
-                  href="#"
-                  className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-all"
-                >
-                  WA
+                  Book Appointment
                 </a>
               </div>
-            </div>
-          </div>
 
-          {/* Bottom Copyright */}
-          <div className="max-w-7xl mx-auto px-6 mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-[9px] text-gray-600 uppercase font-bold tracking-[0.3em]">
-              © 2026 Boke Beauty Salon. All rights reserved.
-            </p>
-            <p className="text-[9px] text-gray-600 uppercase font-bold tracking-[0.3em]">
-              Crafted with Glow
-            </p>
+              {/* Navigation */}
+              <div className="space-y-5">
+                <h3 className="text-xs font-extrabold uppercase tracking-[0.28em] text-pink-400">
+                  Navigation
+                </h3>
+
+                <ul className="space-y-3">
+                  <li>
+                    <a href="/booking" className="footer-link">
+                      Book Now
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/gallery" className="footer-link">
+                      Our Gallery
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/reviews" className="footer-link">
+                      Reviews
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Hours */}
+              <div className="space-y-5">
+                <h3 className="text-xs font-extrabold uppercase tracking-[0.28em] text-pink-400">
+                  Hours
+                </h3>
+
+                <div className="space-y-3 text-sm font-bold uppercase tracking-wide">
+                  <p>
+                    <span className="text-white">Mon - Fri</span>
+                    <span className="block mt-1 text-zinc-500">
+                     {siteSettings.openingTime} - {siteSettings.closingTime}
+                    </span>
+                  </p>
+
+                  <p>
+                    <span className="text-white">Saturday</span>
+                    <span className="block mt-1 text-zinc-500">
+                      {siteSettings.saturdayOpeningTime} - {siteSettings.saturdayClosingTime}
+                    </span>
+                  </p>
+
+                  <p>
+                    <span className="text-white">Sunday</span>
+                    <span className="block mt-1 italic text-zinc-600">
+                      Closed
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-5">
+                <h3 className="text-xs font-extrabold uppercase tracking-[0.28em] text-pink-400">
+                  Location
+                </h3>
+
+                <div className="text-sm font-bold uppercase tracking-wide leading-7">
+                  <p className="text-white">{siteSettings.location}</p>
+                  <p className="text-zinc-500">{siteSettings.addressLine}</p>
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  {/* Instagram */}
+                  <a
+                    href={siteSettings.instagramUrl || "https://instagram.com/twinkle_glowbeauty"}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Instagram"
+                    className="group flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.03] text-zinc-300 transition-all duration-300 hover:border-pink-400 hover:bg-pink-500/10 hover:text-pink-300"
+                  >
+                    <svg
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="5" />
+                      <circle cx="12" cy="12" r="4" />
+                      <circle
+                        cx="17.5"
+                        cy="6.5"
+                        r="0.8"
+                        fill="currentColor"
+                        stroke="none"
+                      />
+                    </svg>
+                  </a>
+
+                  {/* WhatsApp / Message */}
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="WhatsApp"
+                    className="group flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.03] text-zinc-300 transition-all duration-300 hover:border-pink-400 hover:bg-pink-500/10 hover:text-pink-300"
+                  >
+                    <svg
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 11.6a8 8 0 0 1-11.8 7l-4.2 1.2 1.2-4a8 8 0 1 1 14.8-4.2Z" />
+                      <path d="M9.5 8.8c.3 2.4 2 4.1 4.4 4.7" />
+                      <path d="M9.4 8.7l.8-.8" />
+                      <path d="M14 13.5l1-.9" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom */}
+            <div className="mt-10 border-t border-white/10 pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <p className="text-[11px] tracking-[0.28em] text-zinc-600 uppercase">
+                © 2026 Boke Beauty Salon. All rights reserved.
+              </p>
+
+              <p className="text-[11px] tracking-[0.24em] text-zinc-600 uppercase">
+                Crafted for a modern luxury beauty experience.
+              </p>
+              <a
+  href="/admin"
+  className="text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-700 transition hover:text-pink-400"
+>
+  Staff Portal
+</a>
+            </div>
           </div>
         </footer>
       </div>

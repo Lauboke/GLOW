@@ -26,85 +26,95 @@ const GlowCameraModal = ({ isOpen, onClose, onCapture }) => {
   };
 
   useEffect(() => {
-    if (!isOpen) {
+  if (!isOpen) {
+    stopStream();
+    return;
+  }
+
+  let cancelled = false;
+
+  const startCamera = async () => {
+    try {
+      setIsStarting(true);
+      setIsReady(false);
+
+      // Stop any old stream before starting a new one
       stopStream();
-      return;
-    }
 
-    let cancelled = false;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API is not available in this browser.");
+      }
 
-    const startCamera = async () => {
+      let stream;
+
       try {
-        setIsStarting(true);
-        setIsReady(false);
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Camera API is not available in this browser.");
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
+        // First try front camera with normal constraints
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
           },
           audio: false,
         });
+      } catch (firstError) {
+        console.warn("Front camera failed, trying default camera:", firstError);
 
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-
-        const video = videoRef.current;
-if (!video) {
-  setIsStarting(false);
-  toast.error("Camera element not ready.");
-  return;
-}
-
-        video.srcObject = stream;
-
-        video.onloadedmetadata = async () => {
-          try {
-            await video.play();
-            if (!cancelled) {
-              setIsReady(true);
-            }
-          } catch (err) {
-            console.error("Video play failed:", err);
-            toast.error("Camera preview could not start.");
-          } finally {
-            if (!cancelled) {
-              setIsStarting(false);
-            }
-          }
-        };
-      } catch (error) {
-        console.error("Camera error:", error);
-
-        if (error?.name === "NotAllowedError") {
-          toast.error("Please allow camera access in your browser.");
-        } else if (error?.name === "NotFoundError") {
-          toast.error("No camera was found on this device.");
-        } else {
-          toast.error("Could not access camera.");
-        }
-
-        setIsStarting(false);
-        onClose();
+        // Fallback: use any available camera
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
       }
-    };
 
-    startCamera();
+      if (cancelled) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
 
-    return () => {
-      cancelled = true;
+      streamRef.current = stream;
+
+      const video = videoRef.current;
+
+      if (!video) {
+        setIsStarting(false);
+        toast.error("Camera element not ready.");
+        return;
+      }
+
+      video.srcObject = stream;
+
+      await video.play();
+
+      if (!cancelled) {
+        setIsReady(true);
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+
+      if (error?.name === "NotAllowedError") {
+        toast.error("Please allow camera access in your browser.");
+      } else if (error?.name === "NotFoundError") {
+        toast.error("No camera was found on this device.");
+      } else if (error?.name === "NotReadableError") {
+        toast.error("Camera is busy. Close other apps using the camera, then try again.");
+      } else {
+        toast.error("Could not access camera.");
+      }
+
       stopStream();
-    };
-  }, [isOpen, onClose]);
+    } finally {
+      if (!cancelled) {
+        setIsStarting(false);
+      }
+    }
+  };
+
+  startCamera();
+
+  return () => {
+    cancelled = true;
+    stopStream();
+  };
+}, [isOpen]);
 
   if (!isOpen) return null;
 

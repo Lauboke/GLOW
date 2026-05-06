@@ -87,4 +87,123 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+// POST /api/auth/staff-login
+const staffLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Please provide email and password." });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+password",
+    );
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    // Important: only staff and admin can use this portal
+    if (!["staff", "admin"].includes(user.role)) {
+      return res.status(403).json({
+        message: "This portal is for staff members only.",
+      });
+    }
+
+    const token = generateToken(user._id, user.role);
+    const userResponse = user.toJSON();
+
+    res.status(200).json({
+      message: "Staff login successful",
+      token,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("Staff Login Error:", error);
+    res.status(500).json({ message: "Server error during staff login." });
+  }
+};
+
+// GET /api/auth/me
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Get Current User Error:", error);
+    res.status(500).json({ message: "Failed to load account profile." });
+  }
+};
+
+// PATCH /api/auth/me
+const updateCurrentUser = async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+
+    const user = await User.findById(req.user.id).select("+password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (email && email !== user.email) {
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const existingUser = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: user._id },
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          message: "This email is already used by another account.",
+        });
+      }
+
+      user.email = normalizedEmail;
+    }
+
+    if (name) user.name = name.trim();
+    if (phone) user.phone = phone.trim();
+
+    await user.save();
+
+    const userResponse = user.toJSON();
+
+    res.status(200).json({
+      success: true,
+      message: "Account profile updated successfully.",
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("Update Current User Error:", error);
+    res.status(500).json({ message: "Failed to update account profile." });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  staffLogin,
+  getCurrentUser,
+  updateCurrentUser,
+};

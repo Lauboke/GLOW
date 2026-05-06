@@ -404,7 +404,7 @@ if (newPaymentId) {
           {selectedTitle}
         </h4>
         <p className="mt-2 text-sm font-bold text-gray-500">
-          Estimated Price{" "}
+          Booking Deposit{" "}
           <span className="text-pink-600 font-black">KES {selectedPrice}</span>
         </p>
       </div>
