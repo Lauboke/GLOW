@@ -6,11 +6,14 @@ const {
   getUsers,
   deleteUser,
 } = require("../controllers/userController");
+const { verifyToken, authorizeRoles } = require("../middleware/authMiddleware");
 
-// The frontend will send POST requests here
+// Public
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get("/", getUsers);
-router.delete("/:id", deleteUser);
+
+// Admin only
+router.get("/", verifyToken, authorizeRoles("admin"), getUsers);
+router.delete("/:id", verifyToken, authorizeRoles("admin"), deleteUser);
 
 module.exports = router;
